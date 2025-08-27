@@ -1,0 +1,1068 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="商品の場所を簡単検索！料理に必要な材料の売り場も分かる便利なシステム">
+    <meta name="keywords" content="商品検索,レシピ,買い物,スーパー">
+    <meta property="og:title" content="商品・レシピ検索システム">
+    <meta property="og:description" content="商品の場所を簡単検索！料理に必要な材料の売り場も分かる">
+    <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛒</text></svg>">
+    <title>商品・レシピ検索システム</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Helvetica Neue', Arial, 'Hiragino Sans', 'Meiryo', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 40px;
+            max-width: 900px;
+            width: 100%;
+            backdrop-filter: blur(10px);
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .mode-selector {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .mode-btn {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 50px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: #f0f0f0;
+            color: #666;
+            font-weight: bold;
+        }
+
+        .mode-btn.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .mode-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .section {
+            display: none;
+            animation: fadeIn 0.5s ease;
+        }
+
+        .section.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: bold;
+        }
+
+        input[type="text"],
+        textarea,
+        input[type="file"],
+        select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+
+        input[type="text"]:focus,
+        textarea:focus,
+        select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 12px 30px;
+            border: none;
+            border-radius: 50px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: bold;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .search-results {
+            margin-top: 30px;
+        }
+
+        .product-card, .recipe-card {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+            animation: slideIn 0.5s ease;
+        }
+
+        .recipe-card {
+            border-left: 5px solid #ff6b6b;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .product-card:hover, .recipe-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+        }
+
+        .product-name, .recipe-name {
+            font-size: 1.5em;
+            color: #333;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+
+        .recipe-name {
+            color: #ff6b6b;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .recipe-name:hover {
+            color: #ff5252;
+        }
+
+        .product-location {
+            color: #666;
+            line-height: 1.6;
+            margin-bottom: 15px;
+        }
+
+        .product-image {
+            width: 100%;
+            max-height: 300px;
+            object-fit: cover;
+            border-radius: 10px;
+            margin-top: 10px;
+        }
+
+        .success-message {
+            background: linear-gradient(135deg, #84fab0 0%, #8fd3f4 100%);
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            text-align: center;
+            animation: fadeIn 0.5s ease;
+        }
+
+        .product-list {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f8f8f8;
+            border-radius: 15px;
+        }
+
+        .product-list h3 {
+            color: #333;
+            margin-bottom: 15px;
+        }
+
+        .product-item {
+            background: white;
+            padding: 10px 15px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s ease;
+        }
+
+        .product-item:hover {
+            background: #f0f0f0;
+            transform: translateX(5px);
+        }
+
+        .delete-btn {
+            background: #ff6b6b;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 14px;
+        }
+
+        .delete-btn:hover {
+            background: #ff5252;
+        }
+
+        .no-results {
+            text-align: center;
+            color: #999;
+            padding: 30px;
+            font-size: 1.1em;
+        }
+
+        .search-box {
+            position: relative;
+        }
+
+        .search-box input {
+            padding-right: 50px;
+        }
+
+        .clear-search {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: transparent;
+            color: #999;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+
+        .clear-search:hover {
+            color: #667eea;
+            background: #f0f0f0;
+        }
+
+        .ingredients-list {
+            margin-top: 15px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            display: none;
+        }
+
+        .ingredients-list.active {
+            display: block;
+            animation: fadeIn 0.5s ease;
+        }
+
+        .ingredients-list h4 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .ingredient-item {
+            display: inline-block;
+            background: white;
+            padding: 8px 15px;
+            margin: 5px;
+            border-radius: 25px;
+            border: 2px solid #667eea;
+            color: #667eea;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: bold;
+        }
+
+        .ingredient-item:hover {
+            background: #667eea;
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .breadcrumb {
+            background: #f0f0f0;
+            padding: 10px 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            color: #666;
+            display: none;
+        }
+
+        .breadcrumb.active {
+            display: block;
+        }
+
+        .breadcrumb a {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: bold;
+        }
+
+        .breadcrumb a:hover {
+            text-decoration: underline;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        .tab {
+            padding: 10px 20px;
+            background: transparent;
+            border: none;
+            color: #666;
+            cursor: pointer;
+            position: relative;
+            transition: all 0.3s ease;
+        }
+
+        .tab.active {
+            color: #667eea;
+        }
+
+        .tab.active::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: #667eea;
+        }
+
+        .ingredient-chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .chip {
+            background: #f0f0f0;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .chip .remove {
+            cursor: pointer;
+            color: #ff6b6b;
+            font-weight: bold;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 20px;
+                border-radius: 10px;
+            }
+            
+            h1 {
+                font-size: 1.8em;
+            }
+            
+            .mode-selector {
+                flex-direction: column;
+            }
+            
+            .mode-btn {
+                width: 100%;
+            }
+            
+            .tabs {
+                flex-direction: column;
+            }
+            
+            .tab {
+                width: 100%;
+                text-align: center;
+            }
+            
+            button {
+                width: 100%;
+                margin-bottom: 10px;
+            }
+            
+            .ingredient-item {
+                display: block;
+                margin: 5px 0;
+                text-align: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🛒 商品・レシピ検索システム</h1>
+        
+        <div class="mode-selector">
+            <button class="mode-btn active" onclick="switchMode('user')">利用者モード</button>
+            <button class="mode-btn" onclick="switchMode('admin')">管理者モード</button>
+        </div>
+
+        <!-- 利用者モード -->
+        <div id="userSection" class="section active">
+            <div class="breadcrumb" id="breadcrumb">
+                <a href="#" onclick="resetSearch()">🏠 ホーム</a> <span id="breadcrumbPath"></span>
+            </div>
+            
+            <div class="form-group">
+                <label for="searchInput">商品名または料理名で検索：</label>
+                <div class="search-box">
+                    <input type="text" id="searchInput" placeholder="例：トマト、カレー、パスタ...">
+                    <button class="clear-search" onclick="clearSearch()">クリア</button>
+                </div>
+            </div>
+            <button onclick="searchProducts()">🔍 検索</button>
+            
+            <div id="searchResults" class="search-results"></div>
+        </div>
+
+        <!-- 管理者モード -->
+        <div id="adminSection" class="section">
+            <div class="tabs">
+                <button class="tab active" onclick="switchAdminTab('product')">商品管理</button>
+                <button class="tab" onclick="switchAdminTab('recipe')">レシピ管理</button>
+            </div>
+
+            <!-- 商品管理タブ -->
+            <div id="productTab" class="admin-tab">
+                <div class="form-group">
+                    <label for="productName">商品名：</label>
+                    <input type="text" id="productName" placeholder="例：じゃがいも">
+                </div>
+                
+                <div class="form-group">
+                    <label for="productLocation">場所の説明：</label>
+                    <textarea id="productLocation" placeholder="例：野菜コーナーの入口から3列目、左側の棚の下段"></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label for="productImage">商品画像：</label>
+                    <input type="file" id="productImage" accept="image/*">
+                </div>
+                
+                <button onclick="addProduct()">➕ 商品を登録</button>
+            </div>
+
+            <!-- レシピ管理タブ -->
+            <div id="recipeTab" class="admin-tab" style="display: none;">
+                <div class="form-group">
+                    <label for="recipeName">料理名：</label>
+                    <input type="text" id="recipeName" placeholder="例：カレーライス">
+                </div>
+                
+                <div class="form-group">
+                    <label for="recipeIngredients">必要な材料（カンマ区切り）：</label>
+                    <input type="text" id="recipeIngredients" placeholder="例：じゃがいも, にんじん, 玉ねぎ, 牛肉, カレールー">
+                </div>
+                
+                <div class="form-group">
+                    <label>または既存の商品から選択：</label>
+                    <select id="ingredientSelector" onchange="addIngredientFromSelect()">
+                        <option value="">商品を選択...</option>
+                    </select>
+                    <div class="ingredient-chips" id="selectedIngredients"></div>
+                </div>
+                
+                <button onclick="addRecipe()">🍛 レシピを登録</button>
+            </div>
+            
+            <div id="successMessage"></div>
+            
+            <!-- データ管理ボタン -->
+            <div style="margin-top: 20px; padding: 15px; background: #fff3cd; border-radius: 10px;">
+                <h4 style="color: #856404; margin-bottom: 10px;">📊 データ管理</h4>
+                <button onclick="exportData()" style="background: #28a745;">💾 データをエクスポート</button>
+                <button onclick="document.getElementById('importFile').click()" style="background: #17a2b8;">📂 データをインポート</button>
+                <button onclick="resetData()" style="background: #dc3545;">🔄 初期データに戻す</button>
+                <input type="file" id="importFile" accept=".json" style="display: none;" onchange="importData(event)">
+            </div>
+            
+            <div class="product-list">
+                <h3 id="listTitle">登録済み商品一覧</h3>
+                <div id="productList"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // データを保存する配列
+        let products = [];
+        let recipes = [];
+        let selectedIngredients = [];
+        
+        // 初期データのサンプル（商品）
+        const sampleProducts = [
+            {
+                name: "じゃがいも",
+                location: "野菜コーナーの入口から3列目、左側の棚の下段",
+                image: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200' viewBox='0 0 200 200'%3E%3Crect width='200' height='200' fill='%23daa520'/%3E%3Ctext x='50%25' y='50%25' text-anchor='middle' dy='.3em' fill='white' font-size='20'%3Eじゃがいも%3C/text%3E%3C/svg%3E"
+            },
+            {
+                name: "にんじん",
+                location: "野菜コーナーの入口から3列目、右側の棚の中段",
+                image: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200' viewBox='0 0 200 200'%3E%3Crect width='200' height='200' fill='%23ff7f50'/%3E%3Ctext x='50%25' y='50%25' text-anchor='middle' dy='.3em' fill='white' font-size='20'%3Eにんじん%3C/text%3E%3C/svg%3E"
+            },
+            {
+                name: "玉ねぎ",
+                location: "野菜コーナーの入口から2列目、中央の棚",
+                image: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200' viewBox='0 0 200 200'%3E%3Crect width='200' height='200' fill='%23dda0dd'/%3E%3Ctext x='50%25' y='50%25' text-anchor='middle' dy='.3em' fill='white' font-size='20'%3E玉ねぎ%3C/text%3E%3C/svg%3E"
+            },
+            {
+                name: "牛肉",
+                location: "精肉コーナーの冷蔵ケース、中央部分",
+                image: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200' viewBox='0 0 200 200'%3E%3Crect width='200' height='200' fill='%23cd5c5c'/%3E%3Ctext x='50%25' y='50%25' text-anchor='middle' dy='.3em' fill='white' font-size='20'%3E牛肉%3C/text%3E%3C/svg%3E"
+            },
+            {
+                name: "カレールー",
+                location: "調味料コーナー、レトルト食品の棚の上から2段目",
+                image: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200' viewBox='0 0 200 200'%3E%3Crect width='200' height='200' fill='%238b4513'/%3E%3Ctext x='50%25' y='50%25' text-anchor='middle' dy='.3em' fill='white' font-size='20'%3Eカレールー%3C/text%3E%3C/svg%3E"
+            },
+            {
+                name: "トマト",
+                location: "野菜コーナーの入口から1列目、左側の棚の中段",
+                image: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200' viewBox='0 0 200 200'%3E%3Crect width='200' height='200' fill='%23ff6347'/%3E%3Ctext x='50%25' y='50%25' text-anchor='middle' dy='.3em' fill='white' font-size='20'%3Eトマト%3C/text%3E%3C/svg%3E"
+            },
+            {
+                name: "パスタ",
+                location: "乾物・麺類コーナー、棚の中央部分",
+                image: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200' viewBox='0 0 200 200'%3E%3Crect width='200' height='200' fill='%23f0e68c'/%3E%3Ctext x='50%25' y='50%25' text-anchor='middle' dy='.3em' fill='%23333' font-size='20'%3Eパスタ%3C/text%3E%3C/svg%3E"
+            },
+            {
+                name: "米",
+                location: "米・穀物コーナー、入口正面の大型棚",
+                image: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200' viewBox='0 0 200 200'%3E%3Crect width='200' height='200' fill='%23fffaf0'/%3E%3Ctext x='50%25' y='50%25' text-anchor='middle' dy='.3em' fill='%23333' font-size='20'%3E米%3C/text%3E%3C/svg%3E"
+            }
+        ];
+        
+        // 初期データのサンプル（レシピ）
+        const sampleRecipes = [
+            {
+                name: "カレーライス",
+                ingredients: ["じゃがいも", "にんじん", "玉ねぎ", "牛肉", "カレールー", "米"],
+                type: "recipe"
+            },
+            {
+                name: "カレー",
+                ingredients: ["じゃがいも", "にんじん", "玉ねぎ", "牛肉", "カレールー", "米"],
+                type: "recipe"
+            },
+            {
+                name: "トマトパスタ",
+                ingredients: ["パスタ", "トマト", "にんじん", "玉ねぎ"],
+                type: "recipe"
+            }
+        ];
+        
+        // ページ読み込み時に初期化
+        window.onload = function() {
+            loadData();
+            updateProductList();
+            updateIngredientSelector();
+            
+            // Enterキーでの検索を設定
+            document.getElementById('searchInput').addEventListener('keypress', function(event) {
+                if (event.key === 'Enter') {
+                    searchProducts();
+                }
+            });
+        };
+        
+        // データの読み込み
+        function loadData() {
+            // LocalStorageから読み込み
+            const savedProducts = localStorage.getItem('products');
+            const savedRecipes = localStorage.getItem('recipes');
+            
+            if (savedProducts) {
+                products = JSON.parse(savedProducts);
+            } else {
+                // 初回のみサンプルデータを使用
+                products = sampleProducts;
+                saveData();
+            }
+            
+            if (savedRecipes) {
+                recipes = JSON.parse(savedRecipes);
+            } else {
+                // 初回のみサンプルデータを使用
+                recipes = sampleRecipes;
+                saveData();
+            }
+        }
+        
+        // データの保存
+        function saveData() {
+            localStorage.setItem('products', JSON.stringify(products));
+            localStorage.setItem('recipes', JSON.stringify(recipes));
+        }
+        
+        // モード切り替え
+        function switchMode(mode) {
+            const userSection = document.getElementById('userSection');
+            const adminSection = document.getElementById('adminSection');
+            const buttons = document.querySelectorAll('.mode-btn');
+            
+            buttons.forEach(btn => btn.classList.remove('active'));
+            
+            if (mode === 'user') {
+                userSection.classList.add('active');
+                adminSection.classList.remove('active');
+                buttons[0].classList.add('active');
+                resetSearch();
+            } else {
+                userSection.classList.remove('active');
+                adminSection.classList.add('active');
+                buttons[1].classList.add('active');
+                updateProductList();
+                updateIngredientSelector();
+            }
+        }
+        
+        // 管理者タブ切り替え
+        function switchAdminTab(tab) {
+            const tabs = document.querySelectorAll('.tab');
+            const productTab = document.getElementById('productTab');
+            const recipeTab = document.getElementById('recipeTab');
+            const listTitle = document.getElementById('listTitle');
+            
+            tabs.forEach(t => t.classList.remove('active'));
+            
+            if (tab === 'product') {
+                tabs[0].classList.add('active');
+                productTab.style.display = 'block';
+                recipeTab.style.display = 'none';
+                listTitle.textContent = '登録済み商品一覧';
+            } else {
+                tabs[1].classList.add('active');
+                productTab.style.display = 'none';
+                recipeTab.style.display = 'block';
+                listTitle.textContent = '登録済みレシピ一覧';
+            }
+            updateProductList();
+        }
+        
+        // 商品の追加
+        function addProduct() {
+            const name = document.getElementById('productName').value;
+            const location = document.getElementById('productLocation').value;
+            const imageInput = document.getElementById('productImage');
+            
+            if (!name || !location) {
+                alert('商品名と場所の説明を入力してください。');
+                return;
+            }
+            
+            const reader = new FileReader();
+            
+            reader.onload = function(e) {
+                const newProduct = {
+                    name: name,
+                    location: location,
+                    image: e.target.result || createPlaceholderImage(name)
+                };
+                
+                products.push(newProduct);
+                saveData(); // データを保存
+                
+                // フォームをクリア
+                document.getElementById('productName').value = '';
+                document.getElementById('productLocation').value = '';
+                document.getElementById('productImage').value = '';
+                
+                showSuccessMessage('商品を登録しました！');
+                updateProductList();
+                updateIngredientSelector();
+            };
+            
+            if (imageInput.files[0]) {
+                reader.readAsDataURL(imageInput.files[0]);
+            } else {
+                reader.onload({ target: { result: null } });
+            }
+        }
+        
+        // レシピの追加
+        function addRecipe() {
+            const name = document.getElementById('recipeName').value;
+            const ingredientsInput = document.getElementById('recipeIngredients').value;
+            
+            if (!name) {
+                alert('料理名を入力してください。');
+                return;
+            }
+            
+            let ingredients = [];
+            if (ingredientsInput) {
+                ingredients = ingredientsInput.split(',').map(i => i.trim());
+            } else if (selectedIngredients.length > 0) {
+                ingredients = selectedIngredients;
+            } else {
+                alert('材料を入力するか選択してください。');
+                return;
+            }
+            
+            const newRecipe = {
+                name: name,
+                ingredients: ingredients,
+                type: 'recipe'
+            };
+            
+            recipes.push(newRecipe);
+            saveData(); // データを保存
+            
+            // フォームをクリア
+            document.getElementById('recipeName').value = '';
+            document.getElementById('recipeIngredients').value = '';
+            selectedIngredients = [];
+            document.getElementById('selectedIngredients').innerHTML = '';
+            
+            showSuccessMessage('レシピを登録しました！');
+            updateProductList();
+        }
+        
+        // 材料選択の追加
+        function addIngredientFromSelect() {
+            const selector = document.getElementById('ingredientSelector');
+            const selected = selector.value;
+            
+            if (selected && !selectedIngredients.includes(selected)) {
+                selectedIngredients.push(selected);
+                updateSelectedIngredients();
+            }
+            
+            selector.value = '';
+        }
+        
+        // 選択された材料の表示更新
+        function updateSelectedIngredients() {
+            const container = document.getElementById('selectedIngredients');
+            container.innerHTML = selectedIngredients.map(ing => `
+                <div class="chip">
+                    ${ing}
+                    <span class="remove" onclick="removeIngredient('${ing}')">×</span>
+                </div>
+            `).join('');
+        }
+        
+        // 材料の削除
+        function removeIngredient(ingredient) {
+            selectedIngredients = selectedIngredients.filter(i => i !== ingredient);
+            updateSelectedIngredients();
+        }
+        
+        // 材料セレクタの更新
+        function updateIngredientSelector() {
+            const selector = document.getElementById('ingredientSelector');
+            selector.innerHTML = '<option value="">商品を選択...</option>' +
+                products.map(p => `<option value="${p.name}">${p.name}</option>`).join('');
+        }
+        
+        // プレースホルダー画像の生成
+        function createPlaceholderImage(text) {
+            const colors = ['#667eea', '#764ba2', '#f093fb', '#f5576c', '#4facfe', '#00f2fe'];
+            const color = colors[Math.floor(Math.random() * colors.length)];
+            return `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200' viewBox='0 0 200 200'%3E%3Crect width='200' height='200' fill='${encodeURIComponent(color)}'/%3E%3Ctext x='50%25' y='50%25' text-anchor='middle' dy='.3em' fill='white' font-size='20'%3E${encodeURIComponent(text)}%3C/text%3E%3C/svg%3E`;
+        }
+        
+        // 成功メッセージの表示
+        function showSuccessMessage(message) {
+            const messageDiv = document.getElementById('successMessage');
+            messageDiv.innerHTML = `<div class="success-message">${message}</div>`;
+            setTimeout(() => {
+                messageDiv.innerHTML = '';
+            }, 3000);
+        }
+        
+        // 商品リストの更新
+        function updateProductList() {
+            const listDiv = document.getElementById('productList');
+            const listTitle = document.getElementById('listTitle').textContent;
+            
+            let items = listTitle.includes('商品') ? products : recipes;
+            
+            if (items.length === 0) {
+                listDiv.innerHTML = '<div class="no-results">まだ登録されていません</div>';
+                return;
+            }
+            
+            listDiv.innerHTML = items.map((item, index) => `
+                <div class="product-item">
+                    <span>${item.name} ${item.type === 'recipe' ? '(レシピ)' : ''}</span>
+                    <button class="delete-btn" onclick="deleteItem(${index}, '${item.type || 'product'}')">削除</button>
+                </div>
+            `).join('');
+        }
+        
+        // アイテムの削除
+        function deleteItem(index, type) {
+            if (confirm('削除しますか？')) {
+                if (type === 'recipe') {
+                    recipes.splice(index, 1);
+                } else {
+                    products.splice(index, 1);
+                }
+                saveData(); // データを保存
+                updateProductList();
+                showSuccessMessage('削除しました');
+            }
+        }
+        
+        // 商品検索
+        function searchProducts() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const resultsDiv = document.getElementById('searchResults');
+            
+            if (!searchTerm) {
+                resultsDiv.innerHTML = '<div class="no-results">検索キーワードを入力してください</div>';
+                return;
+            }
+            
+            // 商品を検索
+            const productResults = products.filter(product => 
+                product.name.toLowerCase().includes(searchTerm)
+            );
+            
+            // レシピを検索
+            const recipeResults = recipes.filter(recipe => 
+                recipe.name.toLowerCase().includes(searchTerm)
+            );
+            
+            if (productResults.length === 0 && recipeResults.length === 0) {
+                resultsDiv.innerHTML = '<div class="no-results">該当する商品・レシピが見つかりませんでした</div>';
+                return;
+            }
+            
+            let html = '';
+            
+            // レシピの結果を表示
+            if (recipeResults.length > 0) {
+                html += recipeResults.map(recipe => `
+                    <div class="recipe-card">
+                        <div class="recipe-name" onclick="showIngredients('${recipe.name}')">
+                            🍽️ ${recipe.name}
+                            <span class="recipe-type">レシピ</span>
+                        </div>
+                        <div class="ingredients-list" id="ingredients-${recipe.name.replace(/\s/g, '')}">
+                            <h4>📝 必要な材料：</h4>
+                            ${recipe.ingredients.map(ing => `
+                                <span class="ingredient-item" onclick="searchIngredient('${ing}')">${ing}</span>
+                            `).join('')}
+                        </div>
+                    </div>
+                `).join('');
+            }
+            
+            // 商品の結果を表示
+            if (productResults.length > 0) {
+                html += productResults.map(product => `
+                    <div class="product-card">
+                        <div class="product-name">📍 ${product.name}</div>
+                        <div class="product-location">${product.location}</div>
+                        ${product.image ? `<img src="${product.image}" alt="${product.name}" class="product-image">` : ''}
+                    </div>
+                `).join('');
+            }
+            
+            resultsDiv.innerHTML = html;
+            
+            // パンくずリストを更新
+            updateBreadcrumb(searchTerm);
+        }
+        
+        // 材料を表示
+        function showIngredients(recipeName) {
+            const elementId = 'ingredients-' + recipeName.replace(/\s/g, '');
+            const element = document.getElementById(elementId);
+            
+            if (element) {
+                element.classList.toggle('active');
+            }
+        }
+        
+        // 材料から商品を検索
+        function searchIngredient(ingredientName) {
+            const resultsDiv = document.getElementById('searchResults');
+            const product = products.find(p => p.name === ingredientName);
+            
+            if (product) {
+                resultsDiv.innerHTML = `
+                    <div class="product-card">
+                        <div class="product-name">📍 ${product.name}</div>
+                        <div class="product-location">${product.location}</div>
+                        ${product.image ? `<img src="${product.image}" alt="${product.name}" class="product-image">` : ''}
+                    </div>
+                `;
+                
+                // パンくずリストを更新
+                updateBreadcrumb(ingredientName, true);
+            } else {
+                resultsDiv.innerHTML = `
+                    <div class="no-results">
+                        「${ingredientName}」の場所情報がまだ登録されていません。<br>
+                        管理者モードで登録してください。
+                    </div>
+                `;
+            }
+            
+            // 検索ボックスも更新
+            document.getElementById('searchInput').value = ingredientName;
+        }
+        
+        // パンくずリストの更新
+        function updateBreadcrumb(term, isIngredient = false) {
+            const breadcrumb = document.getElementById('breadcrumb');
+            const path = document.getElementById('breadcrumbPath');
+            
+            breadcrumb.classList.add('active');
+            
+            if (isIngredient) {
+                path.innerHTML = ` > <a href="#" onclick="searchProducts(); return false;">検索結果</a> > ${term}`;
+            } else {
+                path.innerHTML = ` > ${term}`;
+            }
+        }
+        
+        // 検索をリセット
+        function resetSearch() {
+            document.getElementById('searchInput').value = '';
+            document.getElementById('searchResults').innerHTML = '';
+            document.getElementById('breadcrumb').classList.remove('active');
+        }
+        
+        // 検索クリア
+        function clearSearch() {
+            resetSearch();
+        }
+        
+        // データのエクスポート
+        function exportData() {
+            const data = {
+                products: products,
+                recipes: recipes,
+                exportDate: new Date().toISOString()
+            };
+            
+            const dataStr = JSON.stringify(data, null, 2);
+            const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+            
+            const exportFileDefaultName = `shop_data_${new Date().toLocaleDateString('ja-JP').replace(/\//g, '-')}.json`;
+            
+            const linkElement = document.createElement('a');
+            linkElement.setAttribute('href', dataUri);
+            linkElement.setAttribute('download', exportFileDefaultName);
+            linkElement.click();
+            
+            showSuccessMessage('データをエクスポートしました！');
+        }
+        
+        // データのインポート
+        function importData(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    
+                    if (data.products && Array.isArray(data.products)) {
+                        products = data.products;
+                    }
+                    if (data.recipes && Array.isArray(data.recipes)) {
+                        recipes = data.recipes;
+                    }
+                    
+                    saveData();
+                    updateProductList();
+                    updateIngredientSelector();
+                    showSuccessMessage('データをインポートしました！');
+                } catch (error) {
+                    alert('データの読み込みに失敗しました。正しいJSONファイルを選択してください。');
+                }
+            };
+            reader.readAsText(file);
+            
+            // ファイル選択をリセット
+            event.target.value = '';
+        }
+        
+        // データのリセット
+        function resetData() {
+            if (confirm('すべてのデータを初期状態に戻しますか？\nこの操作は取り消せません。')) {
+                products = sampleProducts;
+                recipes = sampleRecipes;
+                saveData();
+                updateProductList();
+                updateIngredientSelector();
+                showSuccessMessage('データを初期状態に戻しました！');
+            }
+        }
+    </script>
+</body>
+</html>
